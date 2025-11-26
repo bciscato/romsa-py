@@ -73,7 +73,7 @@ sudo apt install python3 python3-pip git
 Open your terminal (Command Prompt, PowerShell, or Terminal) and run:
 
 ```
-git clone [https://github.com/bciscato/romsa-py.git](https://github.com/bciscato/romsa-py.git)
+git clone https://github.com/bciscato/romsa-py.git
 cd romsa-py
 ```
 
