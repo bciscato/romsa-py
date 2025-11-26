@@ -142,4 +142,8 @@ The input `.dat` file is a plain text file compatible with the original 1994 sof
 
 ## 📄 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT License.
+
+## 💾 Gallery
+
+If you have created a fantastic plot and want to share it, I'm happy to host it here.
