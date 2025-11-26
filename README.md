@@ -176,4 +176,4 @@ The input `.dat` file is a plain text file compatible with the original 1994 sof
 
 ## 📄 License
 
-This project is licensed under the MIT License - see the [LICENSE](https://www.google.com/search?q=LICENSE) file for details.
+This project is licensed under the MIT License - see the [license](https://github.com/bciscato/romsa-py/tree/main?tab=MIT-1-ov-file) file for details.
