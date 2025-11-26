@@ -4,6 +4,8 @@
 
 It is a modern re-implementation of the original C++ program published by **Bruno Ciscato** (1994), based on the structural analysis method developed by **Lisle** (1987).
 
+![Example Output](examples/example_plot.png)
+
 ## 📜 History & Evolution
 
 - **1994 (Original):** Written in C++ for Unix/DOS/Windows. It introduced Object-Oriented Programming to geological stress analysis to handle the heavy computational load of evaluating ~500,000 tensors.
