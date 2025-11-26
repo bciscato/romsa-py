@@ -66,30 +66,46 @@ sudo apt install python3 python3-pip git
 
 ---
 
-## 🚀 Installation
+⬇️ Installation (Choose One)
+Option A: The Easy Way (Download ZIP)
+Best for users who are not familiar with Git.
 
-### 1. Clone the Repository
+Scroll to the top of this GitHub page.
 
-Open your terminal (Command Prompt, PowerShell, or Terminal) and run:
+Click the green <> Code button.
 
-```
-git clone https://github.com/bciscato/romsa-py.git
+Select Download ZIP.
+
+Extract (Unzip) the folder to your Desktop or Documents.
+
+Open a Terminal in that folder:
+
+Windows: Open the extracted folder. In the address bar at the top (where it says the folder name), type cmd and press Enter.
+
+macOS: Open the extracted folder. Right-click (or Ctrl-click) inside the folder and select "New Terminal at Folder".
+
+Option B: The Developer Way (Git)
+Best for developers or users who want easy updates.
+
+Open your terminal and run:
+
+Bash
+
+git clone [https://github.com/YOUR_USERNAME/romsa-py.git](https://github.com/YOUR_USERNAME/romsa-py.git)
 cd romsa-py
-```
+📦 Setup Dependencies
+Once you have your terminal open inside the romsa-py folder, run the following command to install the necessary libraries:
 
-### 2. Install Dependencies
+🪟 Windows:
 
-**🪟 Windows (PowerShell):**
+PowerShell
 
-```
 py -m pip install -r requirements.txt
-```
+🍎 macOS / 🐧 Linux:
 
-**🍎 macOS / 🐧 Linux:**
+Bash
 
-```
 pip3 install -r requirements.txt
-```
 
 ---
 
