@@ -96,16 +96,19 @@ After calculation, an interactive plot window will open.
 * **Save:** You can manually save specific views or different file formats (SVG, PDF) using the "Save" (floppy disk) icon.
 
 ### Advanced Options
-You can control the resolution of the grid search using the `--res` flag:
+
+You can control the resolution and style of the grid search using command-line flags:
 
 | Flag | Description |
 | :--- | :--- |
 | `--res low` | **Fast Preview** (~31k points). Good for quick checks. |
 | `--res medium` | **Standard** (Default, ~125k points). Good balance of speed and detail. |
 | `--res high` | **High Precision** (~500k points). Creates the smoothest plots for publication. |
+| `--cmap [Name]` | Select the color palette. Options: **Inferno** (Default), **Viridis**, **Greys**, **Blues**. <br> *Tip: Use `Greys` for black-and-white publication figures.* |
 
-    python romsa.py examples/data.dat --res high
-
+```
+python romsa.py examples/data.dat --res high --cmap Greys
+```
 ---
 
 ## 📄 Input File Format
