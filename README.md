@@ -157,3 +157,7 @@ This project is licensed under the MIT License.
 ## 💾 Gallery
 
 If you create a fantastic plot and want to share it, I'm happy to host it here.
+
+![ROMSA Output Plot blue](examples/romsa_blues.jpg)
+
+Example using the Blues colour palette
