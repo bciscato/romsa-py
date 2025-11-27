@@ -20,6 +20,7 @@ from typing import Tuple, Optional
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import gridspec
+from matplotlib.widgets import Button
 from numba import njit, prange
 
 # --- CONSTANTS & CONFIGURATION ---
@@ -33,6 +34,14 @@ RES_MAP = {
     'low': 0.01,     # ~31k points (Fast preview)
     'medium': 0.005, # ~125k points (Standard)
     'high': 0.0025   # ~500k points (Publication quality)
+}
+
+# Supported Colormaps (Label: Internal Name)
+CMAP_OPTIONS = {
+    'Inferno': 'inferno',
+    'Viridis': 'viridis',
+    'Greys': 'Greys',
+    'Blues': 'Blues'
 }
 
 # --- HELPER CLASSES ---
@@ -72,17 +81,12 @@ class ProgressBar:
 
 @njit(inline='always')
 def fast_dot(a: np.ndarray, b: np.ndarray) -> float:
-    """
-    Optimized dot product for 3D vectors.
-    Bypasses Numpy overhead for small arrays and handles mixed precision.
-    """
+    """Optimized dot product for 3D vectors."""
     return a[0]*b[0] + a[1]*b[1] + a[2]*b[2]
 
 @njit(fastmath=True)
 def rodrigues_rotate(v: np.ndarray, k: np.ndarray, theta: float) -> np.ndarray:
-    """
-    Rotates vector v around axis k by angle theta using Rodrigues' formula.
-    """
+    """Rotates vector v around axis k by angle theta using Rodrigues' formula."""
     cos_t = np.cos(theta)
     sin_t = np.sin(theta)
     k_cross_v = np.cross(k, v)
@@ -91,9 +95,7 @@ def rodrigues_rotate(v: np.ndarray, k: np.ndarray, theta: float) -> np.ndarray:
 
 @njit
 def dir_cos(plunge: float, trend: float) -> np.ndarray:
-    """
-    Converts geological Trend/Plunge (radians) to a 3D Unit Vector.
-    """
+    """Converts geological Trend/Plunge (radians) to a 3D Unit Vector."""
     l = np.cos(plunge) * np.cos(trend)
     m = np.cos(plunge) * np.sin(trend)
     n = np.sin(plunge)
@@ -104,52 +106,37 @@ def calculate_batch(grid_vecs: np.ndarray,
                     normals: np.ndarray, 
                     striae: np.ndarray, 
                     o_axes: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
-    """
-    Core calculation kernel.
-    Evaluates probability of Sigma 1 for a batch of grid orientations.
-    
-    Returns:
-        batch_probs: Array of probability values (0.0 to 1.0)
-        batch_s3: Array of best-fit Sigma 3 vectors for each grid point
-    """
+    """Core calculation kernel."""
     n_grid = grid_vecs.shape[0]
     n_faults = normals.shape[0]
     
     batch_probs = np.zeros(n_grid, dtype=np.float32)
     batch_s3 = np.zeros((n_grid, 3), dtype=np.float32)
     
-    # Parallel loop over grid points
     for g in prange(n_grid):
-        giv_dir = grid_vecs[g] # Candidate Sigma 1
+        giv_dir = grid_vecs[g] 
         
-        # --- Step 1: P1 (Sigma 1 Dihedra Check) ---
+        # P1 Check
         num_fault_p1 = 0
         for i in range(n_faults):
-            norm_ang = fast_dot(normals[i], giv_dir)
-            striae_ang = fast_dot(striae[i], giv_dir)
-            if (norm_ang * striae_ang) >= 0:
+            if fast_dot(normals[i], giv_dir) * fast_dot(striae[i], giv_dir) >= 0:
                 num_fault_p1 += 1
         
         p1 = num_fault_p1 / n_faults
         if p1 == 0: continue
 
-        # --- Step 2: Scan for Best Sigma 3 (Lisle Constraint) ---
-        
-        # Find a perpendicular starting vector for S3
+        # S3 Scan
         temp_up = np.array([0.0, 0.0, 1.0], dtype=np.float32)
         if np.abs(fast_dot(giv_dir, temp_up)) > 0.99:
              temp_up = np.array([0.0, 1.0, 0.0], dtype=np.float32)
         
         s3_raw = np.cross(giv_dir, temp_up)
-        # Normalize and cast to float32 to prevent type drift in rotation loop
         s3_start = (s3_raw / np.sqrt(fast_dot(s3_raw, s3_raw))).astype(np.float32)
         
         p23_max = 0.0
         best_s3_local = s3_start 
         
-        # Rotate S3 around Sigma 1 (0 to 180 degrees)
         for angle_deg in range(0, 180, SCAN_ANGLE_STEP):
-            # Rotate
             s3_rotated = rodrigues_rotate(s3_start, giv_dir, angle_deg * DEG2RAD)
             s3_current = s3_rotated.astype(np.float32)
             
@@ -157,23 +144,15 @@ def calculate_batch(grid_vecs: np.ndarray,
             num_fault_p3 = 0
             
             for j in range(n_faults):
-                # P2: S3 Dihedra Check
-                norm_dot_s3 = fast_dot(normals[j], s3_current)
                 stri_dot_s3 = fast_dot(striae[j], s3_current)
-                
-                if (norm_dot_s3 * stri_dot_s3) < 0:
+                # P2 Check
+                if fast_dot(normals[j], s3_current) * stri_dot_s3 < 0:
                     num_fault_p2 += 1
                 
-                # P3: Lisle's A/B Quadrant Check
-                o_dot_s1 = fast_dot(o_axes[j], giv_dir)
-                s_dot_s1 = fast_dot(striae[j], giv_dir)
-                o_dot_s3 = fast_dot(o_axes[j], s3_current)
-                # s_dot_s3 is effectively stri_dot_s3
+                # P3 Check (Lisle)
+                check_s1 = (fast_dot(o_axes[j], giv_dir) * fast_dot(striae[j], giv_dir)) >= 0
+                check_s3 = (fast_dot(o_axes[j], s3_current) * stri_dot_s3) >= 0
                 
-                check_s1 = (o_dot_s1 * s_dot_s1) >= 0
-                check_s3 = (o_dot_s3 * stri_dot_s3) >= 0
-                
-                # If they lie in different pairs, the constraint is met
                 if check_s1 != check_s3:
                     num_fault_p3 += 1
             
@@ -193,31 +172,20 @@ def calculate_batch(grid_vecs: np.ndarray,
 # --- IO & UTILS ---
 
 def load_data(filename: str) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
-    """
-    Parses input file. Automatically detects if header count is present or missing.
-    Returns Tuple of (Normals, Striae, O-Axes).
-    """
+    """Parses input file. Automatically detects header presence."""
     if not os.path.exists(filename):
         raise FileNotFoundError(f"The input file '{filename}' was not found.")
 
     with open(filename, 'r') as f:
-        raw_content = f.read()
+        tokens = f.read().replace('"', ' ').replace(',', ' ').split()
     
-    # Normalize delimiters
-    clean_content = raw_content.replace('"', ' ').replace(',', ' ')
-    tokens = clean_content.split()
-    
-    if not tokens: 
-        raise ValueError("File is empty.")
+    if not tokens: raise ValueError("File is empty.")
 
-    # Auto-detect format (Header vs No Header)
     total_tokens = len(tokens)
     if total_tokens % 6 == 1:
-        n_data = int(tokens[0])
-        data_tokens = tokens[1:]
+        n_data = int(tokens[0]); data_tokens = tokens[1:]
     elif total_tokens % 6 == 0:
-        n_data = total_tokens // 6
-        data_tokens = tokens
+        n_data = total_tokens // 6; data_tokens = tokens
     else:
         raise ValueError(f"File contains {total_tokens} values. Expected a multiple of 6.")
 
@@ -227,28 +195,19 @@ def load_data(filename: str) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     
     idx = 0
     for i in range(n_data):
-        # Parse row
-        dip = float(data_tokens[idx]); idx += 1
-        dip_dir = float(data_tokens[idx]); idx += 1
-        plunge = float(data_tokens[idx]); idx += 1
-        plunge_dir = float(data_tokens[idx]); idx += 1
-        norm_rev = int(float(data_tokens[idx])); idx += 1
-        dex_sin = int(float(data_tokens[idx])); idx += 1
+        dip, dip_dir, plunge, plunge_dir, norm_rev, dex_sin = map(float, data_tokens[idx:idx+6])
+        idx += 6
         
-        # Handle pure strike-slip notation
         if norm_rev == 0:
             plunge_dir = dip_dir + 90.0 * dex_sin
             norm_rev = 1
             
-        # Convert to Direction Cosines (Vectors)
         n_vec = dir_cos((90.0 - dip) * DEG2RAD, (dip_dir + 180.0) * DEG2RAD)
         s_vec = dir_cos(plunge * DEG2RAD, plunge_dir * DEG2RAD)
         s_vec = s_vec * norm_rev
         o_vec = np.cross(s_vec, n_vec)
         
-        normals[i] = n_vec
-        striae[i] = s_vec
-        o_axes[i] = o_vec
+        normals[i], striae[i], o_axes[i] = n_vec, s_vec, o_vec
         
     return normals, striae, o_axes
 
@@ -261,8 +220,7 @@ def vec_to_geology(vec: np.ndarray) -> Tuple[int, int]:
     plunge_deg = plunge * RAD2DEG
     trend_deg = trend * RAD2DEG
     
-    if trend_deg < 0:
-        trend_deg += 360.0
+    if trend_deg < 0: trend_deg += 360.0
     if plunge_deg < 0:
         plunge_deg = -plunge_deg
         trend_deg = (trend_deg + 180) % 360.0
@@ -272,27 +230,24 @@ def vec_to_geology(vec: np.ndarray) -> Tuple[int, int]:
 # --- MAIN ---
 
 def main():
-    parser = argparse.ArgumentParser(
-        description='ROMSA: Principal Stress Orientations (Python Implementation)',
-        formatter_class=argparse.RawTextHelpFormatter
-    )
+    parser = argparse.ArgumentParser(description='ROMSA: Paleostress Analysis (Python)')
     parser.add_argument('filename', type=str, help='Path to input .dat file')
+    
     parser.add_argument('--res', choices=['low', 'medium', 'high'], default='medium', 
-                        help='Grid resolution:\n'
-                             '  low    (Step 0.01   | ~31k pts)\n'
-                             '  medium (Step 0.005  | ~125k pts)\n'
-                             '  high   (Step 0.0025 | ~500k pts)')
+                        help='Grid resolution (low/medium/high)')
+    
+    parser.add_argument('--cmap', choices=CMAP_OPTIONS.keys(), default='Inferno',
+                        help='Default color palette for the plot')
     
     args = parser.parse_args()
     input_file = args.filename
     resolution_step = RES_MAP[args.res]
+    selected_cmap_name = CMAP_OPTIONS[args.cmap]
     
-    # Path configuration
     abs_input_path = os.path.abspath(input_file)
     work_dir = os.path.dirname(abs_input_path)
     base_name = os.path.splitext(os.path.basename(input_file))[0]
     
-    # Matplotlib config: Save to input directory by default
     plt.rcParams["savefig.directory"] = work_dir
     
     csv_filename = os.path.join(work_dir, f"{base_name}_tensors.csv")
@@ -301,44 +256,33 @@ def main():
     print(f"\n--- ROMSA: Paleostress Analysis ---")
     print(f"Input File:  {input_file}")
     print(f"Resolution:  {args.res.upper()} (Step: {resolution_step})")
+    print(f"Palette:     {args.cmap}")
 
     try:
         normals, striae, o_axes = load_data(input_file)
     except Exception as e:
-        print(f"\n[ERROR] {e}")
-        return
+        print(f"\n[ERROR] {e}"); return
 
     print(f"Loaded {len(normals)} faults.")
-    
-    # --- 1. Grid Generation ---
     print("Generating search grid...")
     x_range = np.arange(-1.0, 1.0 + resolution_step, resolution_step)
-    y_range = np.arange(-1.0, 1.0 + resolution_step, resolution_step)
-    xx, yy = np.meshgrid(x_range, y_range)
-    
-    flat_x = xx.ravel()
-    flat_y = yy.ravel()
-    # Mask to keep points inside the circle
+    xx, yy = np.meshgrid(x_range, x_range)
+    flat_x, flat_y = xx.ravel(), yy.ravel()
     mask = (flat_x**2 + flat_y**2) <= 1.0
+    valid_x, valid_y = flat_x[mask], flat_y[mask]
     
-    valid_x = flat_x[mask]
-    valid_y = flat_y[mask]
     n_points = len(valid_x)
-    
-    # Convert grid points to vectors
     grid_vecs = np.zeros((n_points, 3), dtype=np.float32)
     for i in range(n_points):
         x, y = valid_x[i], valid_y[i]
         r = np.sqrt(x*x + y*y)
-        if r < 1e-6:
-            plunge, trend = np.pi/2, 0.0
+        if r < 1e-6: p, t = np.pi/2, 0.0
         else:
-            plunge = (np.pi/2) - 2.0 * np.arcsin(r * 0.707106781) # 0.707... is 1/sqrt(2)
-            trend = np.arctan2(x, y) 
-            if trend < 0: trend += 2*np.pi
-        grid_vecs[i] = dir_cos(plunge, trend)
+            p = (np.pi/2) - 2.0 * np.arcsin(r * 0.707106781)
+            t = np.arctan2(x, y) 
+            if t < 0: t += 2*np.pi
+        grid_vecs[i] = dir_cos(p, t)
 
-    # --- 2. Calculation ---
     print(f"Evaluating {n_points} orientations...")
     final_probs = np.zeros(n_points, dtype=np.float32)
     final_s3 = np.zeros((n_points, 3), dtype=np.float32)
@@ -358,13 +302,11 @@ def main():
     max_prob = np.max(final_probs)
     print(f"\nCalculation Done. Max Probability: {max_prob*100:.2f}%")
 
-    # --- 3. CSV Export ---
     print(f"Exporting tensors to '{csv_filename}'...")
     threshold = max_prob * 0.95
     indices = np.where(final_probs >= threshold)[0]
     sorted_indices = indices[np.argsort(-final_probs[indices])]
     
-    # Retrieve Best Tensor
     best_idx = sorted_indices[0]
     best_s1_vec = grid_vecs[best_idx]
     best_s3_vec = final_s3[best_idx]
@@ -378,92 +320,125 @@ def main():
         writer = csv.writer(f)
         writer.writerow(["Prob_Percent", "S1_Dir", "S1_Dip", "S2_Dir", "S2_Dip", "S3_Dir", "S3_Dip"])
         for idx in sorted_indices:
-            prob_val = final_probs[idx]
-            s1_vec = grid_vecs[idx]
-            s3_vec = final_s3[idx]
-            s2_vec = np.cross(s1_vec, s3_vec)
-            s1_d, s1_p = vec_to_geology(s1_vec)
-            s2_d, s2_p = vec_to_geology(s2_vec)
-            s3_d, s3_p = vec_to_geology(s3_vec)
-            writer.writerow([f"{prob_val*100:.1f}", s1_d, s1_p, s2_d, s2_p, s3_d, s3_p])
+            p_val = final_probs[idx]
+            s1, s3 = grid_vecs[idx], final_s3[idx]
+            s2 = np.cross(s1, s3)
+            writer.writerow([f"{p_val*100:.1f}", *vec_to_geology(s1), *vec_to_geology(s2), *vec_to_geology(s3)])
 
-    # --- 4. Plotting ---
     print("Generating plot...")
-    # Map valid points back to the square grid for contouring
     grid_matrix = np.zeros_like(xx, dtype=np.float32)
     grid_matrix.fill(np.nan)
     grid_matrix.ravel()[mask] = final_probs * 100
     
+    # --- PLOTTING SETUP ---
     fig = plt.figure(figsize=(16, 10))
-    
-    # Layout: Info(Left), Plot(Center), Colorbar(Right)
     gs = fig.add_gridspec(1, 3, width_ratios=[3, 6, 0.2],
-                          left=0.08, right=0.92, top=0.90, bottom=0.10,
-                          wspace=0.2)
+                          left=0.05, right=0.90, top=0.90, bottom=0.10, wspace=0.2)
 
     ax_info = fig.add_subplot(gs[0])
     ax_net = fig.add_subplot(gs[1])
     ax_cbar = fig.add_subplot(gs[2])
-
+    
     ax_info.axis('off')
+    ax_net.axis('off')
     ax_net.set_aspect('equal')
-
+   
     # Stereonet
     ax_net.add_artist(plt.Circle((0, 0), 1, color='k', fill=False, linewidth=2))
-    contour = ax_net.contourf(xx, yy, grid_matrix, levels=30, cmap='inferno')
+    
+    # Plot with FIXED LEVELS (0-100) using CLI chosen cmap
+    levels = np.linspace(0, 100, 21) 
+    contour = ax_net.contourf(xx, yy, grid_matrix, levels=levels, cmap=selected_cmap_name, vmin=0, vmax=100)
     
     ax_net.text(0, 1.12, "N", ha='center', fontsize=12, fontweight='bold')
     ax_net.text(0, -1.12, "S", ha='center', fontsize=12, fontweight='bold')
     ax_net.text(1.12, 0, "E", va='center', fontsize=12, fontweight='bold')
     ax_net.text(-1.12, 0, "W", va='center', fontsize=12, fontweight='bold')
-    ax_net.axis('off')
 
-    # Colorbar
-    cbar = plt.colorbar(contour, cax=ax_cbar)
+    # Colorbar (Fixed 0-100)
+    cbar = plt.colorbar(contour, cax=ax_cbar, ticks=np.linspace(0, 100, 11)) 
     cbar.set_label(r'Probability of $\sigma_1$ (%)', fontsize=11)
     ax_cbar.yaxis.set_ticks_position('right')
     ax_cbar.yaxis.set_label_position('right')
 
-    # Typography
-    font_header = {'family': 'sans-serif', 'weight': 'bold', 'size': 14, 'color': '#333333'}
-    font_body = {'family': 'sans-serif', 'weight': 'normal', 'size': 12, 'color': '#444444'}
-    font_mono = {'family': 'monospace', 'weight': 'bold', 'size': 12, 'color': '#000000'}
-    font_body_bold = font_body.copy()
-    font_body_bold['weight'] = 'bold'
+    # Info Panel
+    t = ax_info.transAxes
+    f_head = {'family':'sans-serif', 'weight':'bold', 'size':14, 'color':'#333333'}
+    f_body = {'family':'sans-serif', 'weight':'normal', 'size':12, 'color':'#444444'}
+    f_mono = {'family':'monospace', 'weight':'bold', 'size':12, 'color':'#000000'}
+    f_bold = f_body.copy(); f_bold['weight']='bold'
 
-    # Info Panel Content
-    ax_info.text(0, 1.0, "ROMSA", fontdict={'family': 'sans-serif', 'weight': 'bold', 'size': 24, 'color': '#222222'}, va='top', transform=ax_info.transAxes)
-    ax_info.text(0, 0.94, "Paleostress Analysis", fontdict={'family': 'sans-serif', 'size': 14, 'color': '#666666'}, va='top', transform=ax_info.transAxes)
-    ax_info.plot([0, 1], [0.90, 0.90], color='#aaaaaa', linewidth=1, transform=ax_info.transAxes)
+    ax_info.text(0, 1.0, "ROMSA", fontdict={'family':'sans-serif','weight':'bold','size':24}, va='top', transform=t)
+    ax_info.text(0, 0.94, "Paleostress Analysis", fontdict={'family':'sans-serif','size':14,'color':'#666666'}, va='top', transform=t)
+    ax_info.plot([0, 1], [0.90, 0.90], color='#aaaaaa', linewidth=1, transform=t)
 
-    ax_info.text(0, 0.85, "DATASET", fontdict=font_header, va='top', transform=ax_info.transAxes)
-    ax_info.text(0, 0.81, f"File: {base_name}", fontdict=font_body, va='top', transform=ax_info.transAxes)
-    ax_info.text(0, 0.77, f"Faults Analyzed: {len(normals)}", fontdict=font_body, va='top', transform=ax_info.transAxes)
+    ax_info.text(0, 0.85, "DATASET", fontdict=f_head, va='top', transform=t)
+    ax_info.text(0, 0.81, f"File: {base_name}", fontdict=f_body, va='top', transform=t)
+    ax_info.text(0, 0.77, f"Faults: {len(normals)}", fontdict=f_body, va='top', transform=t)
 
-    ax_info.text(0, 0.65, "BEST FIT TENSOR", fontdict=font_header, va='top', transform=ax_info.transAxes)
-    ax_info.text(0, 0.61, f"Max Probability: {max_prob*100:.1f}%", fontdict=font_body, va='top', transform=ax_info.transAxes)
+    ax_info.text(0, 0.65, "BEST FIT TENSOR", fontdict=f_head, va='top', transform=t)
+    ax_info.text(0, 0.61, f"Max Prob: {max_prob*100:.1f}%", fontdict=f_body, va='top', transform=t)
     
-    # Tensor Table
-    y_start = 0.53
-    line_h = 0.05
+    y = 0.53; h = 0.05
+    ax_info.text(0, y, "Axis", fontdict=f_bold, va='top', transform=t)
+    ax_info.text(0.3, y, "Trend / Plunge", fontdict=f_bold, va='top', transform=t)
     
-    ax_info.text(0, y_start, "Axis", fontdict=font_body_bold, va='top', transform=ax_info.transAxes)
-    ax_info.text(0.3, y_start, "Trend / Plunge", fontdict=font_body_bold, va='top', transform=ax_info.transAxes)
+    ax_info.text(0, y-h, "σ1", fontdict=f_mono, color='#cc3300', va='top', transform=t)
+    ax_info.text(0.3, y-h, f"{b_s1_d:03d} / {b_s1_p:02d}", fontdict=f_mono, va='top', transform=t)
     
-    ax_info.text(0, y_start - line_h, "σ1", fontdict=font_mono, va='top', color='#cc3300', transform=ax_info.transAxes)
-    ax_info.text(0.3, y_start - line_h, f"{b_s1_d:03d} / {b_s1_p:02d}", fontdict=font_mono, va='top', transform=ax_info.transAxes)
+    ax_info.text(0, y-2*h, "σ2", fontdict=f_mono, va='top', transform=t)
+    ax_info.text(0.3, y-2*h, f"{b_s2_d:03d} / {b_s2_p:02d}", fontdict=f_mono, va='top', transform=t)
     
-    ax_info.text(0, y_start - 2*line_h, "σ2", fontdict=font_mono, va='top', transform=ax_info.transAxes)
-    ax_info.text(0.3, y_start - 2*line_h, f"{b_s2_d:03d} / {b_s2_p:02d}", fontdict=font_mono, va='top', transform=ax_info.transAxes)
-    
-    ax_info.text(0, y_start - 3*line_h, "σ3", fontdict=font_mono, va='top', color='#0033cc', transform=ax_info.transAxes)
-    ax_info.text(0.3, y_start - 3*line_h, f"{b_s3_d:03d} / {b_s3_p:02d}", fontdict=font_mono, va='top', transform=ax_info.transAxes)
+    ax_info.text(0, y-3*h, "σ3", fontdict=f_mono, color='#0033cc', va='top', transform=t)
+    ax_info.text(0.3, y-3*h, f"{b_s3_d:03d} / {b_s3_p:02d}", fontdict=f_mono, va='top', transform=t)
 
-    ax_info.text(0, 0.0, "Generated by ROMSA-Py", fontdict={'size': 9, 'color': '#999999'}, va='bottom', transform=ax_info.transAxes)
+    # Footer Text (Placed at very bottom)
+    ax_info.text(0, 0.01, "Generated by ROMSA-Py", fontdict={'size':9,'color':'#999999'}, va='bottom', transform=t)
 
-    # Auto-save (Fixed: Removed bbox_inches='tight' to respect GridSpec margins)
+    # --- SAVE CLEAN IMAGE (Before Adding Buttons) ---
     print(f"Auto-saving plot to '{plot_filename}'...")
     plt.savefig(plot_filename, dpi=300, facecolor='white')
+
+    # --- INTERACTIVITY: Horizontal Buttons ---
+    # Create buttons in the Info Panel space (ax_info)
+    # Position: Slightly above the footer text (y=0.06 to 0.10)
+    button_labels = list(CMAP_OPTIONS.keys())
+    
+    # Create a small button cluster
+    # We use manual placement relative to ax_info's coordinate system won't work easily with widgets
+    # So we place axes relative to Figure coordinates.
+    # Figure coords: Info panel is roughly 0.05 to 0.35 in width (left side)
+    
+    btn_width = 0.05
+    btn_height = 0.03
+    btn_gap = 0.005
+    x_start = 0.05  # Aligned with left margin
+    y_pos = 0.06    # Just above the 0.01 footer text
+    
+    btns = [] # Keep reference
+    
+    # Callback factory
+    def make_callback(label):
+        def on_click(event):
+            cmap_name = CMAP_OPTIONS[label]
+            cmap = plt.get_cmap(cmap_name)
+            contour.set_cmap(cmap)
+            fig.canvas.draw_idle()
+        return on_click
+
+    for i, label in enumerate(button_labels):
+        ax_btn = plt.axes([x_start + i*(btn_width+btn_gap), y_pos, btn_width, btn_height])
+        
+        # Style: White background, thin gray border
+        b = Button(ax_btn, label, color='white', hovercolor='0.95')
+        b.label.set_fontsize(7)
+        
+        # Custom border styling (light gray instead of black)
+        for spine in ax_btn.spines.values():
+            spine.set_edgecolor('#cccccc')
+            
+        b.on_clicked(make_callback(label))
+        btns.append(b)
 
     plt.show()
 
