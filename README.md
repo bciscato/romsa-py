@@ -8,7 +8,7 @@ It is a modern re-implementation of the original C++ program published by **Brun
 
 ## 📜 History & Evolution
 
-* **1994 (Original):** Written in C++ for DOS/Windows. It introduced Object-Oriented Programming to geological stress analysis to handle the heavy computational load of evaluating ~500,000 tensors.
+* **1994 (Original):** Written in C++ for Unix/DOS/Windows. It introduced Object-Oriented Programming to geological stress analysis to handle the heavy computational load of evaluating ~500,000 tensors.
 * **2025 (Modernization):** Ported to Python 3. Using **Numba** (Just-In-Time compilation), this version achieves the same execution speed as C++ on modern multi-core processors while offering superior visualization via **Matplotlib**.
 
 ## 🧠 The Method
@@ -127,18 +127,25 @@ The input `.dat` file is a plain text file compatible with the original 1994 sof
 **Example `data.dat`:**
 
     11
-    10 4   52 116  1  0
-    54 290 53 272  1  0
-    85 240 6  151 -1  0
-    ...
+    10 52 4 116 1 0
+    54 290 53 272 1 0
+    55 302 35 242 1 0
+    40 280 28 332 1 0
+    85 240 6 151 -1 0
+    82 56 14 144 1 0
+    58 278 4 5 1 0
+    37 232 4 315 1 0
+    69 200 57 147 1 0
+    32 214 32 224 1 0
+    50 231 50 220 -1 0
 
 ## 📚 References
 
 1.  **Ciscato, B. (1994).** *Principal Stress Orientations from Faults: a C++ program*. Structural Geology and Personal Computers, 325-342.
-2.  **Lisle, R. J. (1987).** *Principal stress orientations from faults: an additional constraint*. Annales Tectonicae 1: 155-158.
-3.  **Lisle, R. J. (1988).** *ROMSA: a basic program for paleostress analysis using fault-striation data*. Computers & Geosciences 14: 255-259.
-4.  **Angelier, J. & Mechler, P. (1977).** *Sur une méthode graphique de recherche des contraintes principales...*. Bull. Soc. Geol. France 19: 1309-1318.
-5.  **McKenzie, D. P. (1969).** *The relation between fault plane solutions and the directions of the principal stresses*. Bull. Seismolog. Soc. America 59: 591-601.
+2.  **Lisle, R. J. (1988).** *ROMSA: a basic program for paleostress analysis using fault-striation data*. Computers & Geosciences 14: 255-259.
+3.  **Lisle, R. J. (1987).** *Principal stress orientations from faults: an additional constraint*. Annales Tectonicae 1: 155-158.
+5.  **Angelier, J. & Mechler, P. (1977).** *Sur une méthode graphique de recherche des contraintes principales...*. Bull. Soc. Geol. France 19: 1309-1318.
+6.  **McKenzie, D. P. (1969).** *The relation between fault plane solutions and the directions of the principal stresses*. Bull. Seismolog. Soc. America 59: 591-601.
 
 ## 📄 License
 
@@ -146,4 +153,4 @@ This project is licensed under the MIT License.
 
 ## 💾 Gallery
 
-If you have created a fantastic plot and want to share it, I'm happy to host it here.
+If you create a fantastic plot and want to share it, I'm happy to host it here.
