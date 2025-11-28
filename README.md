@@ -167,8 +167,10 @@ If you use ROMSA in your research, please cite both the code and the original pa
 
 ## 💾 Gallery
 
-Community contributions are welcome! Feel free to submit your plots to be featured here.
+***Community contributions are welcome! Feel free to submit your plots to be featured here.***
+
+Just open a Pull Request with your image added to the examples folder or simply **[open a new Issue](https://github.com/bciscato/romsa-py/issues)** and drag-and-drop your image into the description.
 
 ![ROMSA Output Plot blue](examples/romsa_blues.jpg)
 
-Example using the Blues colour palette
+Fig. 1 - Example from the 1994 paper (data.dat above) rendered in the Blues colour palette. Unpublished data by Harper.
