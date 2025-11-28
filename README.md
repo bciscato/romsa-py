@@ -167,7 +167,7 @@ If you use ROMSA in your research, please cite both the code and the original pa
 
 ## 💾 Gallery
 
-If you create a plot you are proud of and want to share it, I'm happy to host it here.
+If you create a plot you are proud of, and want to share it, I'm happy to host it here.
 
 ![ROMSA Output Plot blue](examples/romsa_blues.jpg)
 
