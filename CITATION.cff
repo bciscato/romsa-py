@@ -1,0 +1,25 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite both the software itself (using the metadata below) and the original methodology paper: Ciscato, B. (1994). Principal Stress Orientations from Faults: a C++ program. Structural Geology and Personal Computers, 325-342."
+title: "ROMSA: Right Dihedra Method Stress Analysis (Python)"
+authors:
+  - family-names: "Ciscato"
+    given-names: "B."
+version: 1.0.0
+date-released: 2025-11-28
+url: "https://github.com/bciscato/romsa-py"
+repository-code: "https://github.com/bciscato/romsa-py"
+keywords:
+  - "structural geology"
+  - "paleostress"
+  - "tectonics"
+  - "fault-slip analysis"
+  - "python"
+references:
+  - type: book-chapter
+    authors:
+      - family-names: "Ciscato"
+        given-names: "B."
+    title: "Principal Stress Orientations from Faults: a C++ program"
+    year: 1994
+    collection-title: "Structural Geology and Personal Computers"
+    pages: "325-342"
