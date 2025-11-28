@@ -147,8 +147,8 @@ The input `.dat` file is a plain text file compatible with the original 1994 sof
 1.  **Ciscato, B. (1994).** *Principal Stress Orientations from Faults: a C++ program*. Structural Geology and Personal Computers, 325-342.
 2.  **Lisle, R. J. (1988).** *ROMSA: a basic program for paleostress analysis using fault-striation data*. Computers & Geosciences 14: 255-259.
 3.  **Lisle, R. J. (1987).** *Principal stress orientations from faults: an additional constraint*. Annales Tectonicae 1: 155-158.
-5.  **Angelier, J. & Mechler, P. (1977).** *Sur une méthode graphique de recherche des contraintes principales...*. Bull. Soc. Geol. France 19: 1309-1318.
-6.  **McKenzie, D. P. (1969).** *The relation between fault plane solutions and the directions of the principal stresses*. Bull. Seismolog. Soc. America 59: 591-601.
+4.  **Angelier, J. & Mechler, P. (1977).** *Sur une méthode graphique de recherche des contraintes principales...*. Bull. Soc. Geol. France 19: 1309-1318.
+5.  **McKenzie, D. P. (1969).** *The relation between fault plane solutions and the directions of the principal stresses*. Bull. Seismolog. Soc. America 59: 591-601.
 
 ## 📄 License
 
