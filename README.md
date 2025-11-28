@@ -154,9 +154,20 @@ The input `.dat` file is a plain text file compatible with the original 1994 sof
 
 This project is licensed under the MIT License.
 
+## 📰 Citation
+
+If you use ROMSA in your research, please cite both the code and the original paper:
+
+**The Code:**
+> Ciscato, B. (2025). ROMSA: Right Dihedra Method Stress Analysis (Python) [Computer software]. https://github.com/bciscato/romsa-py
+
+**The Methodology:**
+> Ciscato, B. (1994). Principal Stress Orientations from Faults: a C++ program. Structural Geology and Personal Computers, 325-342.
+
+
 ## 💾 Gallery
 
-If you create a fantastic plot and want to share it, I'm happy to host it here.
+If you create a plot you are proud of and want to share it, I'm happy to host it here.
 
 ![ROMSA Output Plot blue](examples/romsa_blues.jpg)
 
