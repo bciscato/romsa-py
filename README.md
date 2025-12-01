@@ -10,12 +10,12 @@ It is a modern re-implementation of the original C++ program published by **Brun
 ## 📜 History & Evolution
 
 - **1994 (Original):** Written in C++ for Unix/DOS/Windows. It introduced Object-Oriented Programming to geological stress analysis to handle the heavy computational load of evaluating ~500,000 tensors.
-- **2025 (Modernization):** Ported to Python 3. Using **Numba** (Just-In-Time compilation), this version achieves the same execution speed as C++ on modern multi-core processors while offering superior visualization via **Matplotlib**.
+- **2025 (Modernization):** Ported to Python 3. Using **Numba** (Just-In-Time compilation), this version achieves the same execution speed as C++ on modern multi-core processors while offering interactive visualisation via **Matplotlib**.
 
 
 ## 🧠 The Method
 
-ROMSA solves the inverse problem of finding the stress tensor that best explains a population of faults measured in the field. It uses a comprehensive grid-search approach rather than numerical inversion, allowing for the visualization of the entire solution space and its stability.
+ROMSA solves the inverse problem of finding the stress tensor that best explains a population of faults measured in the field. It uses a comprehensive grid search rather than numerical inversion, allowing visualisation of the entire solution space and its stability.
 
 ### 1. The Right Dihedra Principle
 
@@ -108,17 +108,17 @@ After calculation, an interactive window will open with a control panel at the b
   
 - **Overlays (Top Row):** Toggle the visibility of **Fault Planes**, **Striae**, and **Stress Axes**.
   
-- **Palettes (Bottom Row):** Switch between color schemes instantly.
+- **Palettes (Bottom Row):** Switch between colour schemes instantly.
   
 
 ### Command Line Arguments
 
-You can control the resolution, color palette, and **default visibility** of overlays directly from the terminal. This is ideal for generating publication-ready images automatically.
+You can control the resolution, colour palette, and **default visibility** of overlays directly from the terminal. This is ideal for generating publication-ready images automatically.
 
 | **Flag** | **Description** |
 | --- | --- |
 | `--res [low/medium/high]` | Set grid resolution. Default: `medium`. |
-| `--cmap [Name]` | Set color palette. Default: `Inferno`. |
+| `--cmap [Inferno/Viridis/Greys/Blues]` | Set colour palette. Default: `Inferno`. |
 | `--faults` | Enable **Fault Plane** traces (Great Circles) on start. |
 | `--striae` | Enable **Striae** (Slickensides) dots on start. |
 | `--axes` | Enable **Stress Axes** ($\sigma_1, \sigma_2, \sigma_3$) on start. |
@@ -144,7 +144,7 @@ ROMSA automatically generates two files in the same folder as your input data:
 The input `.dat` file is a plain text file compatible with the original 1994 software.
 
 - **Header (Optional):** The first line can be the integer count of faults. If omitted, the program auto-detects it.
-- **Data:** Each row represents one fault with 6 columns:
+- **Data:** Each row represents one fault with six columns:
 
 | Column | Parameter | Description |
 | --- | --- | --- |
@@ -154,6 +154,13 @@ The input `.dat` file is a plain text file compatible with the original 1994 sof
 | 4   | **Trend** | Striae trend/direction (0-360). |
 | 5   | **Vertical** | Sense of slip: `1` (Normal), `-1` (Reverse), `0` (Strike-Slip). |
 | 6   | **Horizontal** | Sense of slip: `1` (Dextral), `-1` (Sinistral), `0` (Dip-Slip). |
+
+### 💡 Striae Visualization & Input Verification
+The interactive plot distinguishes striae based on the geometry derived from your input columns:
+* **White dots:** Standard measurements (Normal, Dextral).
+* **Black dots:** "Inverted" measurements (Reverse, Sinistral).
+
+*This visual distinction is particularly useful for verifying that your **Vertical/Horizontal slip sense** (Columns 5 & 6) produces the expected kinematic orientation.*
 
 **Example `data.dat`:**
 
