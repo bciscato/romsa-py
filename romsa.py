@@ -1,5 +1,5 @@
 """
-ROMSA v1.1: Principal Stress Orientations from Faults
+ROMSA v1.1.1: Principal Stress Orientations from Faults
 =====================================================
 Original Algorithm (C++): Bruno Ciscato (1994)
 Methodology Reference:    Lisle (1987)
@@ -53,33 +53,24 @@ import csv
 import argparse
 from typing import Tuple, Optional, List
 
-# --- Third-Party Imports ---
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.widgets import Button
 from matplotlib.collections import LineCollection
-# Numba is used for Just-In-Time compilation to speed up the heavy math loops
 from numba import njit, prange
 
 # --- CONSTANTS & CONFIGURATION ---
-
-# Conversion factors
 DEG2RAD = np.pi / 180.0
 RAD2DEG = 180.0 / np.pi
+SCAN_ANGLE_STEP = 1  # degrees
+BATCH_SIZE = 1000    # Points to process per JIT batch
 
-# Algorithm settings
-SCAN_ANGLE_STEP = 1  # Step size (degrees) for rotating Sigma 3 around Sigma 1
-BATCH_SIZE = 1000    # Number of grid points to process in one parallel batch
-
-# Grid Resolution Settings (Grid Step Size)
-# 'medium' is the default and offers a good balance of speed vs precision
 RES_MAP = {
-    'low': 0.01,     # ~31,000 points
-    'medium': 0.005, # ~125,000 points
-    'high': 0.0025   # ~500,000 points
+    'low': 0.01,     # ~31k points
+    'medium': 0.005, # ~125k points
+    'high': 0.0025   # ~500k points
 }
 
-# Color palettes for the probability heatmap
 CMAP_OPTIONS = {
     'Inferno': 'inferno',
     'Viridis': 'viridis',
@@ -164,11 +155,6 @@ def calculate_batch(grid_vecs: np.ndarray,
     """
     The Core ROMSA Algorithm.
     Calculates the probability for a batch of potential Sigma 1 orientations.
-    
-    Logic based on Lisle (1987):
-    1. Check if the test vector is compatible with the fault movement (P1).
-    2. Scan all possible Sigma 3 orientations (perpendicular to Sigma 1).
-    3. Calculate P2 (Standard Dihedra) and P3 (Lisle's Quadrant Check).
     """
     n_grid = grid_vecs.shape[0]
     n_faults = normals.shape[0]
@@ -289,7 +275,6 @@ def calculate_barycenter(probs, vec_grid, s3_grid, max_p):
     Calculates the 'Barycenter' (Weighted Average) of the best solutions.
     Instead of taking the single highest pixel, this averages all vectors
     within the top 3% of the maximum probability (the "Plateau").
-    This provides a statistically robust result less prone to grid artifacts.
     """
     threshold = max_p * 0.97
     indices = np.where(probs >= threshold)[0]
@@ -553,12 +538,15 @@ def main():
     ax_info.text(0, y, "Axis", fontdict=f_head, va='top', transform=t)
     ax_info.text(0.3, y, "Trend / Plunge", fontdict=f_head, va='top', transform=t)
     
+    # S1 Red
     ax_info.text(0, y-h, "σ1", fontdict=f_mono, color='#cc3300', va='top', transform=t)
     ax_info.text(0.3, y-h, f"{b_s1_d:03d} / {b_s1_p:02d}", fontdict=f_mono, va='top', transform=t)
     
+    # S2 Black
     ax_info.text(0, y-2*h, "σ2", fontdict=f_mono, color='black', va='top', transform=t)
     ax_info.text(0.3, y-2*h, f"{b_s2_d:03d} / {b_s2_p:02d}", fontdict=f_mono, va='top', transform=t)
     
+    # S3 Blue
     ax_info.text(0, y-3*h, "σ3", fontdict=f_mono, color='#0033cc', va='top', transform=t)
     ax_info.text(0.3, y-3*h, f"{b_s3_d:03d} / {b_s3_p:02d}", fontdict=f_mono, va='top', transform=t)
     
@@ -578,17 +566,32 @@ def main():
     lc_faults = LineCollection(fault_lines, colors='#555555', linewidths=0.8, alpha=0.6, visible=args.faults)
     ax_net.add_collection(lc_faults)
 
-    striae_x, striae_y = [], []
+    # Separate striae into Normal (white dots) and Inverted (black dots)
+    striae_norm_x, striae_norm_y = [], []
+    striae_inv_x, striae_inv_y = [], []
+
     for s in striae:
-        if s[2] < 0: s_plot = -s 
-        else: s_plot = s
-        plunge = np.arcsin(s_plot[2])
-        trend = np.arctan2(s_plot[1], s_plot[0]) 
-        px, py = project_vector(trend, plunge)
-        striae_x.append(px)
-        striae_y.append(py)
+        # Check Z component: < 0 means pointing UP (Upper Hemisphere)
+        if s[2] < 0:
+            s_plot = -s # Flip to lower for plotting
+            plunge = np.arcsin(s_plot[2])
+            trend = np.arctan2(s_plot[1], s_plot[0]) 
+            px, py = project_vector(trend, plunge)
+            striae_inv_x.append(px)
+            striae_inv_y.append(py)
+        else:
+            s_plot = s
+            plunge = np.arcsin(s_plot[2])
+            trend = np.arctan2(s_plot[1], s_plot[0]) 
+            px, py = project_vector(trend, plunge)
+            striae_norm_x.append(px)
+            striae_norm_y.append(py)
     
-    sc_striae = ax_net.scatter(striae_x, striae_y, c='white', edgecolors='black', s=30, linewidth=0.8, zorder=5, visible=args.striae)
+    # Draw Normal Striae (White with Black rim)
+    sc_striae_norm = ax_net.scatter(striae_norm_x, striae_norm_y, c='white', edgecolors='black', s=30, linewidth=0.8, zorder=5, visible=args.striae)
+    
+    # Draw Inverted Striae (Black with White rim)
+    sc_striae_inv = ax_net.scatter(striae_inv_x, striae_inv_y, c='black', edgecolors='white', s=30, linewidth=0.8, zorder=5, visible=args.striae)
 
     t1, p1 = np.arctan2(b_s1_vec[1], b_s1_vec[0]), np.arcsin(b_s1_vec[2]) 
     t2, p2 = np.arctan2(b_s2_vec[1], b_s2_vec[0]), np.arcsin(b_s2_vec[2])
@@ -668,7 +671,8 @@ def main():
         x_pos += btn_w + gap
 
     # Draw Overlays (Row 2 - Top)
-    toggles = {'Faults': lc_faults, 'Striae': sc_striae, 'Axes': [sc_s1, sc_s2, sc_s3]}
+    # Note: Striae now toggles both normal and inverted scatter plots
+    toggles = {'Faults': lc_faults, 'Striae': [sc_striae_norm, sc_striae_inv], 'Axes': [sc_s1, sc_s2, sc_s3]}
     toggle_states = {'Faults': args.faults, 'Striae': args.striae, 'Axes': args.axes}
     x_pos = 0.05
     for label in toggles.keys():
