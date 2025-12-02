@@ -92,19 +92,19 @@ Once your terminal is open in the correct folder, run the following command to i
 
 **🪟 Windows:**
 
-```bash
+```text
 py -m pip install -r requirements.txt
 ```
 
 **🍎 macOS**
 
-```bash
+```text
 pip3 install -r requirements.txt
 ```
 
 **🐧 Linux (Required for Virtual Environment):** *Note: Modern Linux blocks global pip installs. You must create a virtual environment first.*
 
-```bash
+```text
 # 1. Create a virtual environment named 'venv'
 python3 -m venv venv
 
@@ -121,19 +121,19 @@ Run the program by pointing it to your data file:
 
 🪟 **Windows:**
 
-```bash
-python romsa.py examples/data.dat
+```text
+python romsa.py examples\data.dat
 ```
 
 🍎 **macOS:**
 
-```bash
+```text
 python3 romsa.py examples/data.dat
 ```
 
 🐧 **Linux:** *(Make sure you have activated your environment first: `source venv/bin/activate`)*
 
-```bash
+```text
 python3 romsa.py examples/data.dat
 ```
 
@@ -161,8 +161,14 @@ You can control the resolution, colour palette, and **default visibility** of ov
 
 **Example: Generate a high-res plot with all geological data visible:**
 
-```bash
-python romsa.py examples/data.dat --res high --faults --striae --axes
+**Windows:**
+```text
+python romsa.py examples\data.dat --res high --faults --striae --axes
+```
+
+**Mac / Linux:**
+```text
+python3 romsa.py examples/data.dat --res high --faults --striae --axes
 ```
 
 ### Automatic Outputs
@@ -202,7 +208,7 @@ The interactive plot distinguishes striae based on the geometry derived from you
 
 **Example `data.dat`:**
 
-```
+```text
 11
 10 52 4 116 1 0
 54 290 53 272 1 0
