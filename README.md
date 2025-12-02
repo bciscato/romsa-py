@@ -92,7 +92,7 @@ Once your terminal is open in the correct folder, run the following command to i
 
 **🪟 Windows:**
 
-```powershell
+```bash
 py -m pip install -r requirements.txt
 ```
 
@@ -121,7 +121,7 @@ Run the program by pointing it to your data file:
 
 🪟 **Windows:**
 
-```powershell
+```bash
 python romsa.py examples/data.dat
 ```
 
