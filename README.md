@@ -93,7 +93,7 @@ Once your terminal is open in the correct folder, run the following command to i
 **🪟 Windows:**
 
 ```text
-py -m pip install -r requirements.txt
+python -m pip install -r requirements.txt
 ```
 
 **🍎 macOS**
